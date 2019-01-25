@@ -1,0 +1,45 @@
+import requests
+from bs4 import BeautifulSoup
+import os
+
+def get_soup(url):
+    headers = {'Referer':'http://www.mzitu.com/'}
+    r = requests.get(url,headers=headers)  #text
+    r.encoding = 'utf-8'
+    soup = BeautifulSoup(r.text,'lxml')
+    return soup
+
+def img_save(url,title):
+    file_name = url.split('/')[-1]
+    headers = {'Referer':'http://www.mzitu.com/'}
+    img_source = requests.get(url,headers = headers).content
+    f = open(title + "//" + file_name,'wb')
+    f.write(img_source)
+    f.close()
+    
+def get_list_num(url):
+    set_soup = get_soup(url)
+    list = set_soup.find('div',{'class':'nav-links'}).find_all('a',{'class':'page-numbers'})
+    list_num = int(list[-2].string)
+    print(int(list[-2].string))
+    return list_num
+
+set_url = 'https://www.mzitu.com/mm'
+list_num = get_list_num(set_url)
+for i in range(list_num):
+    first_url = "{}{}{}{}{}".format(set_url,"/","page","/", i+1)
+    first_soup = get_soup(first_url)
+    page_urls = first_soup.find('ul',{'id':'pins'}).find_all("li")
+    for each in page_urls:
+        list_url = each.find('a')['href']
+        list_soup = get_soup(list_url)
+        list = list_soup.find("div", {'class':'pagenavi'}).find_all('span')
+        num = int(list[-2].string)                                                    #获取单个网页图片数量
+        title = list_soup.find('h2',{'class':'main-title'}).text.replace('|','')
+        os.mkdir(title)
+        for i in range(num):
+            initial_url = "{}{}{}".format(list_url, "/", i+1 )
+            initial_soup = get_soup(initial_url)
+            imgs = initial_soup.find("div", {'class':'main-image'}).find_all("img")
+            url = imgs[0]["src"]
+            img_save(url,title)
